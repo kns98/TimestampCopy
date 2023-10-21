@@ -51,19 +51,26 @@ class Program
 
             foreach (string file in files)
             {
-                using (FileStream stream = File.OpenRead(file))
+                try
                 {
-                    Console.WriteLine("Hashing " + file + " ... ");
-                    using (MD5 md5 = MD5.Create())
+                    using (FileStream stream = File.OpenRead(file))
                     {
-                        byte[] hashBytes = md5.ComputeHash(stream);
-                        string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-                        long length = new FileInfo(file).Length;
+                        Console.WriteLine("Hashing " + file + " ... ");
+                        using (MD5 md5 = MD5.Create())
+                        {
+                            byte[] hashBytes = md5.ComputeHash(stream);
+                            string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+                            long length = new FileInfo(file).Length;
 
-                        // Create and store a FileEntry object
-                        var fileEntry = new FileEntry(hash, length, file.Substring(directory.Length));
-                        entries.Add(fileEntry);
+                            // Create and store a FileEntry object
+                            var fileEntry = new FileEntry(hash, length, file.Substring(directory.Length));
+                            entries.Add(fileEntry);
+                        }
                     }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
                 }
             }
 
