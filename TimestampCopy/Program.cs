@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
+using static System.Net.WebRequestMethods;
+using File = System.IO.File;
 
 class Program
 {
@@ -27,6 +29,7 @@ class Program
                 string sourceFilePath = Path.Combine(sourceDirectory, sourceEntry.FileName);
                 string destinationFilePath = Path.Combine(destinationDirectory, sourceEntry.FileName);
 
+                Console.WriteLine("Setting timestamp from " + sourceFilePath + " to " + destinationFilePath);
                 // Copy timestamp from source to destination
                 File.SetLastWriteTime(destinationFilePath, File.GetLastWriteTime(sourceFilePath));
             }
@@ -50,6 +53,7 @@ class Program
             {
                 using (FileStream stream = File.OpenRead(file))
                 {
+                    Console.WriteLine("Hashing " + file + " ... ");
                     using (MD5 md5 = MD5.Create())
                     {
                         byte[] hashBytes = md5.ComputeHash(stream);
