@@ -17,15 +17,15 @@ class FileEntryDAL
             this.filePath = filePath;
         }
 
-        public void SerializeToFile(HashSet<FileEntry> sourceEntries)
+        public void SerializeToFile(Dictionary<FileEntry, string> sourceEntries)
         {
             try
             {
                 using (StreamWriter writer = new StreamWriter(filePath))
                 {
-                    foreach (var entry in sourceEntries)
+                    foreach (var entry in sourceEntries.Keys)
                     {
-                        writer.WriteLine($"{entry.MD5Hash},{entry.Length},{entry.FileName}");
+                        writer.WriteLine($"{sourceEntries[entry]},{entry.Length},{entry.FileName}");
                     }
                 }
                 Console.WriteLine("Serialization successful.");
@@ -36,9 +36,9 @@ class FileEntryDAL
             }
         }
 
-        public HashSet<FileEntry> DeserializeFromFile()
+        public Dictionary<FileEntry, string> DeserializeFromFile()
         {
-            var fileEntries = new HashSet<FileEntry>(new FileEntryComparer());
+            var fileEntries = new Dictionary<FileEntry, string>();
 
             try
             {
@@ -55,7 +55,7 @@ class FileEntryDAL
                                 var md5Hash = parts[0];
                                 var length = long.Parse(parts[1]);
                                 var fileName = parts[2];
-                                fileEntries.Add(new FileEntry(md5Hash, length, fileName));
+                                fileEntries.Add(new FileEntry(length, fileName),md5Hash);
                             }
                         }
                     }
@@ -73,9 +73,9 @@ class FileEntryDAL
             return fileEntries;
         }
 
-        public HashSet<FileEntry> DeserializeFromText(string text)
+        public Dictionary<FileEntry, string> DeserializeFromText(string text)
         {
-            var fileEntries = new HashSet<FileEntry>(new FileEntryComparer());
+            var fileEntries = new Dictionary<FileEntry, string>();
 
             try
             {
@@ -88,7 +88,7 @@ class FileEntryDAL
                         var md5Hash = parts[0];
                         var length = long.Parse(parts[1]);
                         var fileName = parts[2];
-                        fileEntries.Add(new FileEntry(md5Hash, length, fileName));
+                        fileEntries.Add(new FileEntry(length, fileName),md5Hash);
                     }
                 }
             }

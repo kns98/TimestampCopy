@@ -8,8 +8,9 @@ using File = System.IO.File;
 
 class Program
 {
-    static HashSet<FileEntry> sourceEntries = new HashSet<FileEntry>(new FileEntryComparer());
-    static HashSet<FileEntry> destinationEntries = new HashSet<FileEntry>(new FileEntryComparer());
+    static Dictionary<FileEntry,string> sourceEntries = new Dictionary<FileEntry, string>();
+    static Dictionary<FileEntry,string> destinationEntries = new Dictionary<FileEntry, string>();
+
     static readonly string filePath = "file_entries.txt";
     static FileEntryDAL fileEntryDAL = new FileEntryDAL(filePath);
     private static void OnCancelKeyPress(object sender, ConsoleCancelEventArgs e)
@@ -29,9 +30,6 @@ class Program
     static void Main(string[] args)
     {        // Subscribe to the ProcessExit event
         AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
-
-        // Unsubscribe from the event (optional but recommended)
-        AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
         Console.CancelKeyPress += new ConsoleCancelEventHandler(OnCancelKeyPress);
 
         // Specify the source and destination directories
@@ -52,9 +50,9 @@ class Program
         ComputeFileEntries(destinationDirectory, destinationEntries);
 
         // Compare the hashsets and copy timestamps
-        foreach (var sourceEntry in sourceEntries)
+        foreach (var sourceEntry in sourceEntries.Keys)
         {
-            if (destinationEntries.Contains(sourceEntry))
+            if (destinationEntries.Values.Contains(sourceEntries[sourceEntry]))
             {
                 string sourceFilePath = Path.Combine(sourceDirectory, sourceEntry.FileName);
                 string destinationFilePath = Path.Combine(destinationDirectory, sourceEntry.FileName);
@@ -82,7 +80,7 @@ class Program
     }
 
     // Recursively compute and store FileEntry objects for files in a directory
-    static void ComputeFileEntries(string directory, HashSet<FileEntry> entries)
+    static void ComputeFileEntries(string directory, Dictionary<FileEntry, string> entries)
     {
         if (Directory.Exists(directory))
         {
@@ -90,7 +88,9 @@ class Program
 
             foreach (string file in files)
             {
-                if (!entries.Contains(new FileEntry("", file.Length, file)))
+                var check = new FileEntry(file.Length, file);
+
+                if (!entries.ContainsKey(check))
                 {
                     try
                     {
@@ -104,8 +104,8 @@ class Program
                                 long length = new FileInfo(file).Length;
 
                                 // Create and store a FileEntry object
-                                var fileEntry = new FileEntry(hash, length, file);
-                                entries.Add(fileEntry);
+                                var fileEntry = new FileEntry(length, file);
+                                entries.Add(fileEntry,hash);
                             }
                         }
                     }
@@ -128,35 +128,14 @@ class Program
 // Class to represent a file entry with MD5 hash, length, and file name
 class FileEntry
 {
-    public string MD5Hash { get; }
     public long Length { get; }
     public string FileName { get; }
 
-    public FileEntry(string md5Hash, long length, string fileName)
+    public FileEntry(long length, string fileName)
     {
-        MD5Hash = md5Hash;
         Length = length;
         FileName = fileName;
     }
 }
 
-// Custom comparer for FileEntry objects
-class FileEntryComparer : IEqualityComparer<FileEntry>
-{
-    public bool Equals(FileEntry x, FileEntry y)
-    {
-        if (x.MD5Hash == "" || y.MD5Hash == "")
-        {
-            return x.FileName == y.FileName && x.Length == y.Length;
-        }
-        else
-        {
-            return x.MD5Hash == y.MD5Hash && x.Length == y.Length;
-        }
-    }
 
-    public int GetHashCode(FileEntry obj)
-    {
-        return (obj.MD5Hash + obj.Length.ToString()).GetHashCode();
-    }
-}
