@@ -17,9 +17,6 @@ class Program
     {        // Subscribe to the ProcessExit event
         AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
 
-        Console.WriteLine("Press Enter to exit the application.");
-        Console.ReadLine();
-
         // Unsubscribe from the event (optional but recommended)
         AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
 
