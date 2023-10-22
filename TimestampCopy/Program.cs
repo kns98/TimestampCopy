@@ -12,6 +12,19 @@ class Program
     static HashSet<FileEntry> destinationEntries = new HashSet<FileEntry>(new FileEntryComparer());
     static readonly string filePath = "file_entries.txt";
     static FileEntryDAL fileEntryDAL = new FileEntryDAL(filePath);
+    private static void OnCancelKeyPress(object sender, ConsoleCancelEventArgs e)
+    {
+        Console.WriteLine("Ctrl+C pressed. Handling the Ctrl+C event...");
+
+        // You can add your own code here to perform cleanup or take specific actions.
+        // For example, you can gracefully shut down your application.
+
+        // To terminate the program, set the Cancel property of the event args to true.
+        // If you don't set it to true, the program will continue running after handling Ctrl+C.
+        fileEntryDAL.SerializeToFile(sourceEntries);
+
+
+    }
 
     static void Main(string[] args)
     {        // Subscribe to the ProcessExit event
@@ -19,12 +32,13 @@ class Program
 
         // Unsubscribe from the event (optional but recommended)
         AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
+        Console.CancelKeyPress += new ConsoleCancelEventHandler(OnCancelKeyPress);
 
         // Specify the source and destination directories
         string sourceDirectory = @"e:\OneDrive\Pictures";
         string destinationDirectory = @"d:\OneDrive\pictures";
 
-        
+
         string datFile = "file_entries.txt";
 
         if (File.Exists(datFile))
@@ -54,7 +68,7 @@ class Program
                 Console.WriteLine($"File {sourceEntry.FileName} has different sizes or hashes in source and destination directories.");
             }
         }
-
+        fileEntryDAL.SerializeToFile(sourceEntries);
         Console.WriteLine("Timestamps copied successfully.");
     }
     static void OnProcessExit(object sender, EventArgs e)
@@ -76,26 +90,29 @@ class Program
 
             foreach (string file in files)
             {
-                try
+                if (!entries.Contains(new FileEntry("", file.Length, file)))
                 {
-                    using (FileStream stream = File.OpenRead(file))
+                    try
                     {
-                        Console.WriteLine("Hashing " + file + " ... ");
-                        using (MD5 md5 = MD5.Create())
+                        using (FileStream stream = File.OpenRead(file))
                         {
-                            byte[] hashBytes = md5.ComputeHash(stream);
-                            string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-                            long length = new FileInfo(file).Length;
+                            Console.WriteLine("Hashing " + file + " ... ");
+                            using (MD5 md5 = MD5.Create())
+                            {
+                                byte[] hashBytes = md5.ComputeHash(stream);
+                                string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+                                long length = new FileInfo(file).Length;
 
-                            // Create and store a FileEntry object
-                            var fileEntry = new FileEntry(hash, length, file.Substring(directory.Length));
-                            entries.Add(fileEntry);
+                                // Create and store a FileEntry object
+                                var fileEntry = new FileEntry(hash, length, file);
+                                entries.Add(fileEntry);
+                            }
                         }
                     }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.ToString());
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.ToString());
+                    }
                 }
             }
 
@@ -128,7 +145,14 @@ class FileEntryComparer : IEqualityComparer<FileEntry>
 {
     public bool Equals(FileEntry x, FileEntry y)
     {
-        return x.MD5Hash == y.MD5Hash && x.Length == y.Length;
+        if (x.MD5Hash == "" || y.MD5Hash == "")
+        {
+            return x.FileName == y.FileName && x.Length == y.Length;
+        }
+        else
+        {
+            return x.MD5Hash == y.MD5Hash && x.Length == y.Length;
+        }
     }
 
     public int GetHashCode(FileEntry obj)
