@@ -2,20 +2,39 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
+using TimestampCopy;
 using static System.Net.WebRequestMethods;
 using File = System.IO.File;
 
 class Program
 {
+    static HashSet<FileEntry> sourceEntries = new HashSet<FileEntry>(new FileEntryComparer());
+    static HashSet<FileEntry> destinationEntries = new HashSet<FileEntry>(new FileEntryComparer());
+    static readonly string filePath = "file_entries.txt";
+    static FileEntryDAL fileEntryDAL = new FileEntryDAL(filePath);
+
     static void Main(string[] args)
-    {
+    {        // Subscribe to the ProcessExit event
+        AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
+
+        Console.WriteLine("Press Enter to exit the application.");
+        Console.ReadLine();
+
+        // Unsubscribe from the event (optional but recommended)
+        AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
+
         // Specify the source and destination directories
         string sourceDirectory = @"e:\OneDrive\Pictures";
         string destinationDirectory = @"d:\OneDrive\pictures";
 
-        // Create hashsets to store FileEntry objects
-        HashSet<FileEntry> sourceEntries = new HashSet<FileEntry>(new FileEntryComparer());
-        HashSet<FileEntry> destinationEntries = new HashSet<FileEntry>(new FileEntryComparer());
+        
+        string datFile = "file_entries.txt";
+
+        if (File.Exists(datFile))
+        {
+            sourceEntries = fileEntryDAL.DeserializeFromFile();
+        }
+
 
         // Compute and store FileEntry objects for source and destination directories
         ComputeFileEntries(sourceDirectory, sourceEntries);
@@ -40,6 +59,15 @@ class Program
         }
 
         Console.WriteLine("Timestamps copied successfully.");
+    }
+    static void OnProcessExit(object sender, EventArgs e)
+    {
+        // This method will be called just before the application exits.
+        // You can perform cleanup or any necessary actions here.
+        Console.WriteLine("Exiting the application. Performing cleanup...");
+
+        fileEntryDAL.SerializeToFile(sourceEntries);
+
     }
 
     // Recursively compute and store FileEntry objects for files in a directory
